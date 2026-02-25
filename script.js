@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
 
   const grid = document.getElementById("grid");
+  const progress = document.getElementById("progress");
 
   const images = [
     "./images/img1.png",
@@ -25,15 +26,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function updateProgress() {
+    progress.innerHTML = `<h3>진행 상황: ${currentRound} / ${maxRounds}</h3>`;
+  }
+
   function createGrid() {
-    grid.innerHTML = ""; // 🔥 기존 격자 삭제
+    grid.innerHTML = "";
 
     if (currentRound >= maxRounds) {
-      grid.innerHTML = "<h2>선택이 완료되었습니다.</h2>";
+      progress.innerHTML = "<h2>선택이 완료되었습니다.</h2>";
       return;
     }
 
     currentRound++;
+    updateProgress();
 
     const shuffledImages = [...images];
     shuffle(shuffledImages);
@@ -52,14 +58,13 @@ document.addEventListener("DOMContentLoaded", function () {
       cell.style.cursor = "pointer";
 
       cell.addEventListener("click", function () {
-        console.log("선택:", imageUrl);
-        createGrid(); // 🔥 클릭하면 다음 라운드
+        createGrid();
       });
 
       grid.appendChild(cell);
     }
   }
 
-  createGrid(); // 🔥 첫 시작
+  createGrid();
 
 });
