@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateProgress() {
-    progress.innerHTML = `<h3>진행 상황: ${currentRound} / ${maxRounds}</h3>`;
+    progress.innerHTML = `<h3> ${currentRound} / ${maxRounds}</h3>`;
   }
 
   function createGrid() {
