@@ -41,40 +41,49 @@ document.addEventListener("DOMContentLoaded", function () {
     progress.innerHTML = `<h3> ${currentRound} / ${maxRounds}</h3>`;
   }
 
-  function createGrid() {
-    grid.innerHTML = "";
+ function createGrid() {
 
-    if (currentRound >= maxRounds) {
-      progress.innerHTML = "<h2>선택이 완료되었습니다.</h2>";
-      return;
-    }
+  grid.innerHTML = "";
 
-    currentRound++;
-    updateProgress();
-
-    const shuffledImages = [...images];
-    shuffle(shuffledImages);
-
-    const gridSize = 9;
-
-    for (let i = 0; i < gridSize; i++) {
-      const cell = document.createElement("div");
-      const imageUrl = shuffledImages[i];
-
-      cell.style.width = "150px";
-      cell.style.height = "150px";
-      cell.style.backgroundImage = `url(${imageUrl})`;
-      cell.style.backgroundSize = "cover";
-      cell.style.backgroundPosition = "center";
-      cell.style.cursor = "pointer";
-
-      cell.addEventListener("click", function () {
-        createGrid();
-      });
-
-      grid.appendChild(cell);
-    }
+  if (currentRound === maxRounds) {
+    saveData();
+    return;
   }
+
+  const shuffledImages = [...images];
+  shuffle(shuffledImages);
+
+  const gridSize = 9;
+
+  for (let i = 0; i < gridSize; i++) {
+
+    const cell = document.createElement("div");
+    const imageUrl = shuffledImages[i];
+
+    cell.style.width = "150px";
+    cell.style.height = "150px";
+    cell.style.backgroundImage = `url(${imageUrl})`;
+    cell.style.backgroundSize = "cover";
+    cell.style.backgroundPosition = "center";
+    cell.style.cursor = "pointer";
+
+    cell.addEventListener("click", function () {
+
+      selections.push(imageUrl);
+      currentRound++;
+      updateProgress();
+
+      if (currentRound === maxRounds) {
+        saveData();
+      } else {
+        createGrid();
+      }
+
+    });
+
+    grid.appendChild(cell);
+  }
+}
 
   createGrid();
 
