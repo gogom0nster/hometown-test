@@ -22,13 +22,19 @@ for (let i = 0; i < 9; i++) {
   const cell = document.createElement("div");
 
   const isImageA = Math.random() > 0.5;
-  const imageUrl = isImageA ? "images/img1.png" : "images/img2.png";
+  const imageUrl = isImageA ? "Images/img1.png" : "Images/img2.png";
 
   cell.style.width = "150px";
   cell.style.height = "150px";
   cell.style.backgroundImage = `url(${imageUrl})`;
   cell.style.backgroundSize = "cover";
   cell.style.backgroundPosition = "center";
+  cell.style.cursor = "pointer";
+
+  // 🔥 클릭 이벤트 추가
+  cell.addEventListener("click", () => {
+    alert(isImageA ? "A 이미지를 선택했습니다." : "B 이미지를 선택했습니다.");
+  });
 
   grid.appendChild(cell);
 }
