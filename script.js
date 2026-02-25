@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const cell = document.createElement("div");
 
     const isImageA = Math.random() > 0.5;
-    const imageUrl = isImageA ? "Images/img1.png" : "Images/img2.png";
+    const imageUrl = isImageA ? "images/img1.png" : "images/img2.png";
 
     cell.style.width = "150px";
     cell.style.height = "150px";
