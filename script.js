@@ -21,3 +21,24 @@
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
 </script>
+const grid = document.getElementById("grid");
+
+grid.style.display = "grid";
+grid.style.gridTemplateColumns = "repeat(3, 150px)";
+grid.style.gridTemplateRows = "repeat(3, 150px)";
+grid.style.gap = "5px";
+
+for (let i = 0; i < 9; i++) {
+  const cell = document.createElement("div");
+
+  const isImageA = Math.random() > 0.5;
+  const imageUrl = isImageA ? "images/a.jpg" : "images/b.jpg";
+
+  cell.style.width = "150px";
+  cell.style.height = "150px";
+  cell.style.backgroundImage = `url(${imageUrl})`;
+  cell.style.backgroundSize = "cover";
+  cell.style.backgroundPosition = "center";
+
+  grid.appendChild(cell);
+}
