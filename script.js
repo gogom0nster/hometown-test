@@ -31,9 +31,9 @@ for (let i = 0; i < 9; i++) {
   cell.style.backgroundPosition = "center";
   cell.style.cursor = "pointer";
 
-  // 🔥 클릭 이벤트 추가
-  cell.addEventListener("click", () => {
-    alert(isImageA ? "A 이미지를 선택했습니다." : "B 이미지를 선택했습니다.");
+  cell.addEventListener("click", function() {
+    console.log("클릭됨");
+    alert("클릭됨");
   });
 
   grid.appendChild(cell);
