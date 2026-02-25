@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function () {
     cell.style.backgroundSize = "cover";
     cell.style.backgroundPosition = "center";
     cell.style.cursor = "pointer";
-    cell.style.border = "2px solid red";  // 디버그용, 나중에 제거 가능
     cell.style.pointerEvents = "auto";
 
     // 클릭 이벤트
