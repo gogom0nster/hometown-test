@@ -15,31 +15,51 @@ document.addEventListener("DOMContentLoaded", function () {
     "./images/img10.png"
   ];
 
-  // 🔥 배열 섞기 (Fisher-Yates Shuffle)
-  for (let i = images.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [images[i], images[j]] = [images[j], images[i]];
+  let currentRound = 0;
+  const maxRounds = 5;
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
 
-  // 격자에 필요한 개수만 사용 (예: 9칸)
-  const gridSize = 9;
+  function createGrid() {
+    grid.innerHTML = ""; // 🔥 기존 격자 삭제
 
-  for (let i = 0; i < gridSize; i++) {
-    const cell = document.createElement("div");
-    const imageUrl = images[i]; // 🔥 중복 없음
+    if (currentRound >= maxRounds) {
+      grid.innerHTML = "<h2>선택이 완료되었습니다.</h2>";
+      return;
+    }
 
-    cell.style.width = "150px";
-    cell.style.height = "150px";
-    cell.style.backgroundImage = `url(${imageUrl})`;
-    cell.style.backgroundSize = "cover";
-    cell.style.backgroundPosition = "center";
-    cell.style.cursor = "pointer";
+    currentRound++;
 
-    cell.addEventListener("click", function () {
-      alert(`선택한 이미지: ${imageUrl}`);
-    });
+    const shuffledImages = [...images];
+    shuffle(shuffledImages);
 
-    grid.appendChild(cell);
+    const gridSize = 9;
+
+    for (let i = 0; i < gridSize; i++) {
+      const cell = document.createElement("div");
+      const imageUrl = shuffledImages[i];
+
+      cell.style.width = "150px";
+      cell.style.height = "150px";
+      cell.style.backgroundImage = `url(${imageUrl})`;
+      cell.style.backgroundSize = "cover";
+      cell.style.backgroundPosition = "center";
+      cell.style.cursor = "pointer";
+
+      cell.addEventListener("click", function () {
+        console.log("선택:", imageUrl);
+        createGrid(); // 🔥 클릭하면 다음 라운드
+      });
+
+      grid.appendChild(cell);
+    }
   }
+
+  createGrid(); // 🔥 첫 시작
 
 });
