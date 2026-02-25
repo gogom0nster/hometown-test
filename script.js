@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
     "./images/img2.png",
     "./images/img3.png",
     "./images/img4.png",
-    "./images/img5.png"
+    "./images/img5.png",
     "./images/img6.png",
     "./images/img7.png",
     "./images/img8.png",
@@ -15,10 +15,18 @@ document.addEventListener("DOMContentLoaded", function () {
     "./images/img10.png"
   ];
 
-  for (let i = 0; i < 9; i++) {
+  // 🔥 배열 섞기 (Fisher-Yates Shuffle)
+  for (let i = images.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [images[i], images[j]] = [images[j], images[i]];
+  }
+
+  // 격자에 필요한 개수만 사용 (예: 9칸)
+  const gridSize = 9;
+
+  for (let i = 0; i < gridSize; i++) {
     const cell = document.createElement("div");
-    const randomIndex = Math.floor(Math.random() * images.length);
-    const imageUrl = images[randomIndex];
+    const imageUrl = images[i]; // 🔥 중복 없음
 
     cell.style.width = "150px";
     cell.style.height = "150px";
@@ -28,7 +36,6 @@ document.addEventListener("DOMContentLoaded", function () {
     cell.style.cursor = "pointer";
 
     cell.addEventListener("click", function () {
-      console.log("선택된 이미지:", imageUrl);
       alert(`선택한 이미지: ${imageUrl}`);
     });
 
