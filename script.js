@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let currentRound = 0;
   const maxRounds = 5;
+  let selections = [];
 
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
