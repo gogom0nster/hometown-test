@@ -1,5 +1,16 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 document.addEventListener("DOMContentLoaded", function () {
-
+ 
+  const firebaseConfig = {
+    apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
+    authDomain: "hometown-data.firebaseapp.com",
+    projectId: "hometown-data",
+    storageBucket: "hometown-data.firebasestorage.app",
+    messagingSenderId: "427121820704",
+    appId: "1:427121820704:web:ae205795fbcac3e713e845",
+    measurementId: "G-3WQWD0BW3F"
+  };
   const grid = document.getElementById("grid");
   const progress = document.getElementById("progress");
 
