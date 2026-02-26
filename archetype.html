@@ -9,10 +9,11 @@
     color: white;
     text-align: center;
     font-family: sans-serif;
+    margin: 0;
   }
   canvas {
     margin-top: 20px;
-    box-shadow: 0 0 40px rgba(255,255,255,0.2);
+    box-shadow: 0 0 40px rgba(255,255,255,0.15);
   }
 </style>
 </head>
@@ -41,8 +42,8 @@ const db = getFirestore(app);
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const WIDTH = 800;
-const HEIGHT = 500;
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
 
 async function generateArchetype() {
 
@@ -58,68 +59,79 @@ async function generateArchetype() {
     });
   });
 
-  const entries = Object.entries(counts)
+  const sorted = Object.entries(counts)
     .sort((a,b) => b[1] - a[1]);
 
-  const images = entries.map(e => e[0]);
-  const weights = entries.map(e => e[1] / total);
-
-  const loaded = await Promise.all(images.map(loadImage));
-
-  // 🔹 1️⃣ 저해상도 평균 계산
-  const lowW = 200;
-  const lowH = 125;
-
-  const lowCanvas = document.createElement("canvas");
-  lowCanvas.width = lowW;
-  lowCanvas.height = lowH;
-  const lowCtx = lowCanvas.getContext("2d");
-
-  const imageDataArray = [];
-
-  loaded.forEach(img => {
-    lowCtx.clearRect(0,0,lowW,lowH);
-    lowCtx.drawImage(img, 0, 0, lowW, lowH);
-    imageDataArray.push(lowCtx.getImageData(0,0,lowW,lowH));
-  });
-
-  const avg = lowCtx.createImageData(lowW, lowH);
-
-  for (let i = 0; i < avg.data.length; i += 4) {
-
-    let r=0,g=0,b=0;
-
-    imageDataArray.forEach(data => {
-      r += data.data[i];
-      g += data.data[i+1];
-      b += data.data[i+2];
-    });
-
-    avg.data[i] = r / imageDataArray.length;
-    avg.data[i+1] = g / imageDataArray.length;
-    avg.data[i+2] = b / imageDataArray.length;
-    avg.data[i+3] = 255;
+  if (sorted.length === 0) {
+    ctx.fillStyle = "white";
+    ctx.fillText("No data yet", WIDTH/2 - 40, HEIGHT/2);
+    return;
   }
 
-  lowCtx.putImageData(avg,0,0);
+  const topImages = sorted.map(e => e[0]);
 
-  // 🔹 2️⃣ 고해상도에 배경 확대
-  ctx.drawImage(lowCanvas, 0, 0, WIDTH, HEIGHT);
+  const loaded = await Promise.all(
+    topImages.map(src => loadImage(src))
+  );
 
-  // 🔹 3️⃣ 상위 20개만 가중 합성
-  const topN = Math.min(20, loaded.length);
+  ctx.clearRect(0,0,WIDTH,HEIGHT);
 
-  for (let i = 0; i < topN; i++) {
-    ctx.globalAlpha = weights[i] * 3;
+  // 🌫 배경 아주 약한 잔향 (6위 이후)
+  for (let i = 5; i < Math.min(15, loaded.length); i++) {
+    ctx.globalAlpha = 0.04;
+    ctx.filter = "blur(12px)";
     ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
   }
 
-  ctx.globalAlpha = 1;
+  // 🫧 2~5위 (주변 기억)
+  for (let i = 1; i < Math.min(5, loaded.length); i++) {
+    ctx.globalAlpha = 0.18;
+    ctx.filter = "blur(6px)";
+    ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
+  }
 
-  // 🔹 부드러운 블러
-  ctx.filter = "blur(6px)";
-  ctx.drawImage(canvas, 0, 0);
-  ctx.filter = "none";
+  // 🔥 1위 (Core) – 점점 선명해지게
+  ctx.globalAlpha = 0;
+  ctx.filter = "blur(20px)";
+
+  let opacity = 0;
+  let blur = 20;
+
+  function animateCore() {
+
+    ctx.clearRect(0,0,WIDTH,HEIGHT);
+
+    // 다시 배경 레이어 그림
+    for (let i = 5; i < Math.min(15, loaded.length); i++) {
+      ctx.globalAlpha = 0.04;
+      ctx.filter = "blur(12px)";
+      ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
+    }
+
+    for (let i = 1; i < Math.min(5, loaded.length); i++) {
+      ctx.globalAlpha = 0.18;
+      ctx.filter = "blur(6px)";
+      ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
+    }
+
+    // Core 애니메이션
+    ctx.globalAlpha = opacity;
+    ctx.filter = `blur(${blur}px)`;
+    ctx.drawImage(loaded[0], 0, 0, WIDTH, HEIGHT);
+
+    if (opacity < 1) {
+      opacity += 0.01;
+      blur -= 0.2;
+      requestAnimationFrame(animateCore);
+    } else {
+      ctx.globalAlpha = 1;
+      ctx.filter = "blur(2px)"; // 완전 또렷하지 않게 약간 남김
+      ctx.drawImage(loaded[0], 0, 0, WIDTH, HEIGHT);
+      ctx.filter = "none";
+    }
+  }
+
+  animateCore();
 }
 
 function loadImage(src) {
