@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Layered Collective Archetypes</title>
+<title>Collective Archetype Viewer</title>
 <style>
   body{
     background:#111;
@@ -10,29 +10,23 @@
     text-align:center;
     font-family:sans-serif;
   }
-  .grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:20px;
-    width:90%;
-    margin:auto;
-  }
   canvas{
     background:black;
+    cursor:pointer;
+    transition:opacity 0.4s ease;
+  }
+  p{
+    opacity:0.6;
+    font-size:14px;
   }
 </style>
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Non-Overlapping Variations</h2>
+<h2>집단적 고향의 원형</h2>
+<p>이미지를 클릭하면 다음 버전으로 넘어갑니다</p>
 
-<div class="grid">
-  <canvas id="c0" width="500" height="300"></canvas>
-  <canvas id="c1" width="500" height="300"></canvas>
-  <canvas id="c2" width="500" height="300"></canvas>
-  <canvas id="c3" width="500" height="300"></canvas>
-  <canvas id="c4" width="500" height="300"></canvas>
-</div>
+<canvas id="mainCanvas" width="600" height="360"></canvas>
 
 <script type="module">
 
@@ -50,6 +44,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+const canvas = document.getElementById("mainCanvas");
+const ctx = canvas.getContext("2d");
+
+let generatedVersions = [];
+let currentIndex = 0;
 
 async function generate(){
 
@@ -72,13 +72,14 @@ async function generate(){
     imageMap[entry[0]] = await loadImage(entry[0]);
   }
 
-  // 🔥 사용된 이미지 기록
   const usedImages = new Set();
 
   for(let v=0; v<5; v++){
 
-    const ctx = document.getElementById("c"+v).getContext("2d");
-    ctx.clearRect(0,0,500,300);
+    const offCanvas = document.createElement("canvas");
+    offCanvas.width = canvas.width;
+    offCanvas.height = canvas.height;
+    const offCtx = offCanvas.getContext("2d");
 
     const groups = [
       sorted.slice(0,5),
@@ -90,23 +91,38 @@ async function generate(){
     const opacities=[0.9,0.6,0.35,0.2];
 
     groups.forEach((group,i)=>{
-
-      // 아직 안 쓰인 이미지들만 필터
       const available = group.filter(e=>!usedImages.has(e[0]));
       if(available.length===0) return;
 
       const randomItem = available[Math.floor(Math.random()*available.length)];
       const img = imageMap[randomItem[0]];
 
-      ctx.globalAlpha = opacities[i];
-      ctx.drawImage(img,0,0,500,300);
+      offCtx.globalAlpha = opacities[i];
+      offCtx.drawImage(img,0,0,canvas.width,canvas.height);
 
-      usedImages.add(randomItem[0]); // 🔥 사용 처리
+      usedImages.add(randomItem[0]);
     });
 
-    ctx.globalAlpha=1;
+    offCtx.globalAlpha=1;
+    generatedVersions.push(offCanvas);
   }
+
+  drawCurrent();
 }
+
+function drawCurrent(){
+  canvas.style.opacity = 0;
+  setTimeout(()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(generatedVersions[currentIndex],0,0);
+    canvas.style.opacity = 1;
+  },200);
+}
+
+canvas.addEventListener("click",()=>{
+  currentIndex = (currentIndex+1)%generatedVersions.length;
+  drawCurrent();
+});
 
 function loadImage(src){
   return new Promise(resolve=>{
