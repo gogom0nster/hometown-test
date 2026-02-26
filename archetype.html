@@ -2,25 +2,37 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Collective Hometown Archetype</title>
+<title>Layered Collective Archetypes</title>
 <style>
-  body {
-    background: #111;
-    color: white;
-    text-align: center;
-    font-family: sans-serif;
-    margin: 0;
+  body{
+    background:#111;
+    color:white;
+    text-align:center;
+    font-family:sans-serif;
   }
-  canvas {
-    margin-top: 20px;
-    background: #000;
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    width:90%;
+    margin:auto;
+  }
+  canvas{
+    background:black;
   }
 </style>
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Weighted Mosaic</h2>
-<canvas id="canvas" width="1000" height="600"></canvas>
+<h2>집단적 고향의 원형 – Layered Variations</h2>
+
+<div class="grid">
+  <canvas id="c0" width="500" height="300"></canvas>
+  <canvas id="c1" width="500" height="300"></canvas>
+  <canvas id="c2" width="500" height="300"></canvas>
+  <canvas id="c3" width="500" height="300"></canvas>
+  <canvas id="c4" width="500" height="300"></canvas>
+</div>
 
 <script type="module">
 
@@ -28,7 +40,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
+  apiKey: "여기에_apiKey",
   authDomain: "hometown-data.firebaseapp.com",
   projectId: "hometown-data",
   storageBucket: "hometown-data.firebasestorage.app",
@@ -39,79 +51,68 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+async function generate(){
 
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
-
-async function generateArchetype() {
-
-  const snapshot = await getDocs(collection(db, "results"));
+  const snapshot = await getDocs(collection(db,"results"));
 
   const counts = {};
-  let totalVotes = 0;
-
-  snapshot.forEach(doc => {
-    doc.data().selections.forEach(img => {
-      counts[img] = (counts[img] || 0) + 1;
-      totalVotes++;
+  snapshot.forEach(doc=>{
+    doc.data().selections.forEach(img=>{
+      counts[img]=(counts[img]||0)+1;
     });
   });
 
   const sorted = Object.entries(counts)
-    .sort((a,b) => b[1] - a[1]);
+    .sort((a,b)=>b[1]-a[1]);
 
-  if (sorted.length === 0) return;
+  if(sorted.length===0) return;
 
-  const loaded = await Promise.all(
-    sorted.map(entry => loadImage(entry[0]))
+  const images = await Promise.all(
+    sorted.map(e=>loadImage(e[0]))
   );
 
-  ctx.clearRect(0,0,WIDTH,HEIGHT);
+  const groups = [
+    sorted.slice(0,5),
+    sorted.slice(5,10),
+    sorted.slice(10,30),
+    sorted.slice(30)
+  ];
 
-  let x = 0;
-  let y = 0;
-  let rowHeight = 0;
+  for(let v=0; v<5; v++){
 
-  for (let i = 0; i < sorted.length; i++) {
+    const ctx = document.getElementById("c"+v).getContext("2d");
+    ctx.clearRect(0,0,500,300);
+    ctx.globalCompositeOperation="source-over";
 
-    const voteCount = sorted[i][1];
-    const weight = voteCount / totalVotes;
+    groups.forEach((group,i)=>{
 
-    const img = loaded[i];
+      if(group.length===0) return;
 
-    // 🔥 비중에 따른 크기 (극적 차이)
-    const tileWidth = 120 + weight * 600;
-    const aspect = img.height / img.width;
-    const tileHeight = tileWidth * aspect;
+      const randomItem = group[Math.floor(Math.random()*group.length)];
+      const index = sorted.findIndex(e=>e[0]===randomItem[0]);
+      const img = images[index];
 
-    // 줄바꿈
-    if (x + tileWidth > WIDTH) {
-      x = 0;
-      y += rowHeight + 10;
-      rowHeight = 0;
-    }
+      const opacities=[0.9,0.6,0.35,0.2];
 
-    if (y + tileHeight > HEIGHT) break;
+      ctx.globalAlpha=opacities[i] || 0.15;
 
-    ctx.drawImage(img, x, y, tileWidth, tileHeight);
+      ctx.drawImage(img,0,0,500,300);
+    });
 
-    x += tileWidth + 10;
-    rowHeight = Math.max(rowHeight, tileHeight);
+    ctx.globalAlpha=1;
   }
 }
 
-function loadImage(src) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = src;
-    img.onload = () => resolve(img);
+function loadImage(src){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.src=src;
+    img.onload=()=>resolve(img);
   });
 }
 
-generateArchetype();
+generate();
 
 </script>
 </body>
