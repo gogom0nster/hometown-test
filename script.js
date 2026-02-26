@@ -4,7 +4,7 @@ import { getFirestore, collection, addDoc } from "https://www.gstatic.com/fireba
 document.addEventListener("DOMContentLoaded", function () {
 
   const firebaseConfig = {
-    apiKey: "너의_apiKey",
+    apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
     authDomain: "hometown-data.firebaseapp.com",
     projectId: "hometown-data",
     storageBucket: "hometown-data.firebasestorage.app",
