@@ -20,18 +20,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const overlay = document.getElementById("memoryOverlay");
   const memoryButton = document.getElementById("memoryButton");
 
-  const images = [
-    "./images/img1.png",
-    "./images/img2.png",
-    "./images/img3.png",
-    "./images/img4.png",
-    "./images/img5.png",
-    "./images/img6.png",
-    "./images/img7.png",
-    "./images/img8.png",
-    "./images/img9.png",
-    "./images/img10.png"
-  ];
+  // ✅ 72개 자동 생성
+  const images = [];
+  for (let i = 1; i <= 72; i++) {
+    images.push(`./images/img${i}.png`);
+  }
 
   let currentRound = 0;
   const maxRounds = 5;
