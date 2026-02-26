@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Spatial Distortion</h2>
+<h2>집단적 고향의 원형 – Weighted Formation</h2>
 <canvas id="canvas" width="800" height="500"></canvas>
 
 <script type="module">
@@ -45,23 +45,17 @@ const ctx = canvas.getContext("2d");
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 
-const SCALE = 0.3;
-const SMALL_W = WIDTH * SCALE;
-const SMALL_H = HEIGHT * SCALE;
-
-const offCanvas = document.createElement("canvas");
-offCanvas.width = SMALL_W;
-offCanvas.height = SMALL_H;
-const offCtx = offCanvas.getContext("2d");
-
 async function generateArchetype() {
 
   const snapshot = await getDocs(collection(db, "results"));
 
   const counts = {};
+  let totalVotes = 0;
+
   snapshot.forEach(doc => {
     doc.data().selections.forEach(img => {
       counts[img] = (counts[img] || 0) + 1;
+      totalVotes++;
     });
   });
 
@@ -74,70 +68,40 @@ async function generateArchetype() {
     return;
   }
 
-  const imagePool = sorted.map(e => e[0]);
-
   const loaded = await Promise.all(
-    imagePool.map(src => loadImage(src))
+    sorted.map(entry => loadImage(entry[0]))
   );
 
-  buildDistortedAverage(loaded);
-}
+  ctx.clearRect(0,0,WIDTH,HEIGHT);
 
-function buildDistortedAverage(images) {
+  // 🔥 적게 고른 이미지부터 먼저 그림 (뒤에 배치)
+  for (let i = sorted.length - 1; i >= 0; i--) {
 
-  const imageDataArray = [];
+    const voteCount = sorted[i][1];
+    const weight = voteCount / totalVotes; // 선택 비율
 
-  images.forEach((img, index) => {
+    const img = loaded[i];
 
-    offCtx.clearRect(0,0,SMALL_W,SMALL_H);
+    // 비중에 따른 크기 (70% ~ 100%)
+    const scale = 0.7 + weight * 0.6;
 
-    // 🔥 이미지마다 다른 왜곡값
-    const offsetX = (Math.random() - 0.5) * 40;
-    const offsetY = (Math.random() - 0.5) * 40;
+    const drawWidth = WIDTH * scale;
+    const drawHeight = HEIGHT * scale;
 
-    offCtx.drawImage(
-      img,
-      offsetX,
-      offsetY,
-      SMALL_W,
-      SMALL_H
-    );
+    const offsetX = (WIDTH - drawWidth) / 2;
+    const offsetY = (HEIGHT - drawHeight) / 2;
 
-    imageDataArray.push(
-      offCtx.getImageData(0,0,SMALL_W,SMALL_H).data
-    );
-  });
+    // 비중에 따른 투명도
+    ctx.globalAlpha = 0.15 + weight * 1.5;
 
-  const finalImage = offCtx.createImageData(SMALL_W, SMALL_H);
-  const totalPixels = SMALL_W * SMALL_H;
+    // 많이 고른 이미지는 선명
+    const blurAmount = 6 - weight * 20;
+    ctx.filter = `blur(${Math.max(0, blurAmount)}px)`;
 
-  for (let i = 0; i < totalPixels; i++) {
-
-    const index = i * 4;
-
-    let r = 0, g = 0, b = 0;
-
-    imageDataArray.forEach(data => {
-      r += data[index];
-      g += data[index+1];
-      b += data[index+2];
-    });
-
-    r /= imageDataArray.length;
-    g /= imageDataArray.length;
-    b /= imageDataArray.length;
-
-    finalImage.data[index] = r;
-    finalImage.data[index+1] = g;
-    finalImage.data[index+2] = b;
-    finalImage.data[index+3] = 255;
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
   }
 
-  offCtx.putImageData(finalImage, 0, 0);
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.filter = "blur(2px)";
-  ctx.drawImage(offCanvas, 0, 0, WIDTH, HEIGHT);
+  ctx.globalAlpha = 1;
   ctx.filter = "none";
 }
 
