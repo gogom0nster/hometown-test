@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Majority Vote</h2>
+<h2>집단적 고향의 원형 – Spatial Distortion</h2>
 <canvas id="canvas" width="800" height="500"></canvas>
 
 <script type="module">
@@ -45,8 +45,7 @@ const ctx = canvas.getContext("2d");
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 
-// 연산용 작은 캔버스 (속도 최적화)
-const SCALE = 0.25;
+const SCALE = 0.3;
 const SMALL_W = WIDTH * SCALE;
 const SMALL_H = HEIGHT * SCALE;
 
@@ -81,16 +80,29 @@ async function generateArchetype() {
     imagePool.map(src => loadImage(src))
   );
 
-  buildMajorityImage(loaded);
+  buildDistortedAverage(loaded);
 }
 
-function buildMajorityImage(images) {
+function buildDistortedAverage(images) {
 
   const imageDataArray = [];
 
-  images.forEach(img => {
+  images.forEach((img, index) => {
+
     offCtx.clearRect(0,0,SMALL_W,SMALL_H);
-    offCtx.drawImage(img, 0, 0, SMALL_W, SMALL_H);
+
+    // 🔥 이미지마다 다른 왜곡값
+    const offsetX = (Math.random() - 0.5) * 40;
+    const offsetY = (Math.random() - 0.5) * 40;
+
+    offCtx.drawImage(
+      img,
+      offsetX,
+      offsetY,
+      SMALL_W,
+      SMALL_H
+    );
+
     imageDataArray.push(
       offCtx.getImageData(0,0,SMALL_W,SMALL_H).data
     );
@@ -103,45 +115,30 @@ function buildMajorityImage(images) {
 
     const index = i * 4;
 
-    const colorVotes = {};
+    let r = 0, g = 0, b = 0;
 
     imageDataArray.forEach(data => {
-      const r = data[index];
-      const g = data[index+1];
-      const b = data[index+2];
-
-      // 색상 단순화 (정확히 일치해야 하므로 약간 양자화)
-      const key =
-        Math.round(r/32)*32 + "," +
-        Math.round(g/32)*32 + "," +
-        Math.round(b/32)*32;
-
-      colorVotes[key] = (colorVotes[key] || 0) + 1;
+      r += data[index];
+      g += data[index+1];
+      b += data[index+2];
     });
 
-    let winningColor = null;
-    let maxVotes = 0;
+    r /= imageDataArray.length;
+    g /= imageDataArray.length;
+    b /= imageDataArray.length;
 
-    for (let color in colorVotes) {
-      if (colorVotes[color] > maxVotes) {
-        maxVotes = colorVotes[color];
-        winningColor = color;
-      }
-    }
-
-    const [wr, wg, wb] = winningColor.split(",").map(Number);
-
-    finalImage.data[index] = wr;
-    finalImage.data[index+1] = wg;
-    finalImage.data[index+2] = wb;
+    finalImage.data[index] = r;
+    finalImage.data[index+1] = g;
+    finalImage.data[index+2] = b;
     finalImage.data[index+3] = 255;
   }
 
   offCtx.putImageData(finalImage, 0, 0);
 
-  // 확대해서 메인 캔버스에 그리기
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = true;
+  ctx.filter = "blur(2px)";
   ctx.drawImage(offCanvas, 0, 0, WIDTH, HEIGHT);
+  ctx.filter = "none";
 }
 
 function loadImage(src) {
