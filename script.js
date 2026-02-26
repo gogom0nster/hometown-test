@@ -3,23 +3,22 @@ import { getFirestore, collection, addDoc } from "https://www.gstatic.com/fireba
 
 document.addEventListener("DOMContentLoaded", function () {
 
-  // 🔥 Firebase 설정
   const firebaseConfig = {
-    apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
+    apiKey: "너의_apiKey",
     authDomain: "hometown-data.firebaseapp.com",
     projectId: "hometown-data",
     storageBucket: "hometown-data.firebasestorage.app",
     messagingSenderId: "427121820704",
-    appId: "1:427121820704:web:ae205795fbcac3e713e845",
-    measurementId: "G-3WQWD0BW3F"
+    appId: "1:427121820704:web:ae205795fbcac3e713e845"
   };
 
-  // 🔥 Firebase 초기화
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
   const grid = document.getElementById("grid");
   const progress = document.getElementById("progress");
+  const overlay = document.getElementById("memoryOverlay");
+  const memoryButton = document.getElementById("memoryButton");
 
   const images = [
     "./images/img1.png",
@@ -56,29 +55,43 @@ document.addEventListener("DOMContentLoaded", function () {
         timestamp: new Date()
       });
 
-      progress.innerHTML = "<h2>저장 완료!</h2>";
-      grid.innerHTML = ""; // 🔥 선택 못 하게 비움
-      console.log("저장 성공");
+      showMemoryScreen();
 
     } catch (error) {
       console.error("저장 실패:", error);
     }
   }
 
+  function showMemoryScreen() {
+    grid.innerHTML = "";
+    progress.innerHTML = "";
+    overlay.style.display = "flex";
+  }
+
+  memoryButton.addEventListener("mouseenter", () => {
+    memoryButton.style.transform = "scale(1.1)";
+    memoryButton.style.opacity = "0.7";
+  });
+
+  memoryButton.addEventListener("mouseleave", () => {
+    memoryButton.style.transform = "scale(1)";
+    memoryButton.style.opacity = "1";
+  });
+
+  memoryButton.addEventListener("click", () => {
+    window.location.href = "archetype.html";
+  });
+
   function createGrid() {
 
-    if (currentRound >= maxRounds) {
-      return; // 🔥 5번 이후 실행 차단
-    }
+    if (currentRound >= maxRounds) return;
 
     grid.innerHTML = "";
 
     const shuffledImages = [...images];
     shuffle(shuffledImages);
 
-    const gridSize = 9;
-
-    for (let i = 0; i < gridSize; i++) {
+    for (let i = 0; i < 9; i++) {
 
       const cell = document.createElement("div");
       const imageUrl = shuffledImages[i];
