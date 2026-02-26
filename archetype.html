@@ -78,7 +78,7 @@ async function generateArchetype() {
 
 function buildFragmentMosaic(images) {
 
-  const gridSize = 40; // 블록 크기
+  const gridSize = 20 + Math.random() * 60; // 블록 크기
   const cols = Math.ceil(WIDTH / gridSize);
   const rows = Math.ceil(HEIGHT / gridSize);
 
