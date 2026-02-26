@@ -24,7 +24,7 @@
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Layered Variations</h2>
+<h2>집단적 고향의 원형 – Non-Overlapping Variations</h2>
 
 <div class="grid">
   <canvas id="c0" width="500" height="300"></canvas>
@@ -62,41 +62,46 @@ async function generate(){
     });
   });
 
-  const sorted = Object.entries(counts)
+  let sorted = Object.entries(counts)
     .sort((a,b)=>b[1]-a[1]);
 
   if(sorted.length===0) return;
 
-  const images = await Promise.all(
-    sorted.map(e=>loadImage(e[0]))
-  );
+  const imageMap = {};
+  for(let entry of sorted){
+    imageMap[entry[0]] = await loadImage(entry[0]);
+  }
 
-  const groups = [
-    sorted.slice(0,5),
-    sorted.slice(5,10),
-    sorted.slice(10,30),
-    sorted.slice(30)
-  ];
+  // 🔥 사용된 이미지 기록
+  const usedImages = new Set();
 
   for(let v=0; v<5; v++){
 
     const ctx = document.getElementById("c"+v).getContext("2d");
     ctx.clearRect(0,0,500,300);
-    ctx.globalCompositeOperation="source-over";
+
+    const groups = [
+      sorted.slice(0,5),
+      sorted.slice(5,10),
+      sorted.slice(10,30),
+      sorted.slice(30)
+    ];
+
+    const opacities=[0.9,0.6,0.35,0.2];
 
     groups.forEach((group,i)=>{
 
-      if(group.length===0) return;
+      // 아직 안 쓰인 이미지들만 필터
+      const available = group.filter(e=>!usedImages.has(e[0]));
+      if(available.length===0) return;
 
-      const randomItem = group[Math.floor(Math.random()*group.length)];
-      const index = sorted.findIndex(e=>e[0]===randomItem[0]);
-      const img = images[index];
+      const randomItem = available[Math.floor(Math.random()*available.length)];
+      const img = imageMap[randomItem[0]];
 
-      const opacities=[0.9,0.6,0.35,0.2];
-
-      ctx.globalAlpha=opacities[i] || 0.15;
-
+      ctx.globalAlpha = opacities[i];
       ctx.drawImage(img,0,0,500,300);
+
+      usedImages.add(randomItem[0]); // 🔥 사용 처리
     });
 
     ctx.globalAlpha=1;
