@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>집단적 고향의 원형</h2>
+<h2>집단적 고향의 원형 – Fragment Reconstruction</h2>
 <canvas id="canvas" width="800" height="500"></canvas>
 
 <script type="module">
@@ -50,12 +50,9 @@ async function generateArchetype() {
   const snapshot = await getDocs(collection(db, "results"));
 
   const counts = {};
-  let total = 0;
-
   snapshot.forEach(doc => {
     doc.data().selections.forEach(img => {
       counts[img] = (counts[img] || 0) + 1;
-      total++;
     });
   });
 
@@ -68,70 +65,57 @@ async function generateArchetype() {
     return;
   }
 
-  const topImages = sorted.map(e => e[0]);
+  const imagePool = sorted.map(e => e[0]);
 
   const loaded = await Promise.all(
-    topImages.map(src => loadImage(src))
+    imagePool.map(src => loadImage(src))
   );
 
   ctx.clearRect(0,0,WIDTH,HEIGHT);
 
-  // 🌫 배경 아주 약한 잔향 (6위 이후)
-  for (let i = 5; i < Math.min(15, loaded.length); i++) {
-    ctx.globalAlpha = 0.04;
-    ctx.filter = "blur(12px)";
-    ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
-  }
+  buildFragmentMosaic(loaded);
+}
 
-  // 🫧 2~5위 (주변 기억)
-  for (let i = 1; i < Math.min(5, loaded.length); i++) {
-    ctx.globalAlpha = 0.18;
-    ctx.filter = "blur(6px)";
-    ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
-  }
+function buildFragmentMosaic(images) {
 
-  // 🔥 1위 (Core) – 점점 선명해지게
-  ctx.globalAlpha = 0;
-  ctx.filter = "blur(20px)";
+  const gridSize = 40; // 블록 크기
+  const cols = Math.ceil(WIDTH / gridSize);
+  const rows = Math.ceil(HEIGHT / gridSize);
 
-  let opacity = 0;
-  let blur = 20;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
 
-  function animateCore() {
+      const img = weightedPick(images);
 
-    ctx.clearRect(0,0,WIDTH,HEIGHT);
+      const sx = Math.random() * img.width;
+      const sy = Math.random() * img.height;
 
-    // 다시 배경 레이어 그림
-    for (let i = 5; i < Math.min(15, loaded.length); i++) {
-      ctx.globalAlpha = 0.04;
-      ctx.filter = "blur(12px)";
-      ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
-    }
-
-    for (let i = 1; i < Math.min(5, loaded.length); i++) {
-      ctx.globalAlpha = 0.18;
-      ctx.filter = "blur(6px)";
-      ctx.drawImage(loaded[i], 0, 0, WIDTH, HEIGHT);
-    }
-
-    // Core 애니메이션
-    ctx.globalAlpha = opacity;
-    ctx.filter = `blur(${blur}px)`;
-    ctx.drawImage(loaded[0], 0, 0, WIDTH, HEIGHT);
-
-    if (opacity < 1) {
-      opacity += 0.01;
-      blur -= 0.2;
-      requestAnimationFrame(animateCore);
-    } else {
-      ctx.globalAlpha = 1;
-      ctx.filter = "blur(2px)"; // 완전 또렷하지 않게 약간 남김
-      ctx.drawImage(loaded[0], 0, 0, WIDTH, HEIGHT);
-      ctx.filter = "none";
+      ctx.drawImage(
+        img,
+        sx, sy,
+        gridSize, gridSize,
+        x * gridSize,
+        y * gridSize,
+        gridSize,
+        gridSize
+      );
     }
   }
+}
 
-  animateCore();
+function weightedPick(images) {
+
+  const r = Math.random();
+
+  if (r < 0.6) {
+    return images[0]; // 1위 60%
+  } else if (r < 0.85 && images[1]) {
+    return images[1]; // 2위
+  } else if (r < 0.95 && images[2]) {
+    return images[2]; // 3위
+  } else {
+    return images[Math.floor(Math.random() * images.length)];
+  }
 }
 
 function loadImage(src) {
