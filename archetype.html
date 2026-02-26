@@ -19,7 +19,7 @@
 </head>
 <body>
 
-<h2>집단적 고향의 원형 – Fragment Reconstruction</h2>
+<h2>집단적 고향의 원형 – Majority Vote</h2>
 <canvas id="canvas" width="800" height="500"></canvas>
 
 <script type="module">
@@ -44,6 +44,16 @@ const ctx = canvas.getContext("2d");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
+
+// 연산용 작은 캔버스 (속도 최적화)
+const SCALE = 0.25;
+const SMALL_W = WIDTH * SCALE;
+const SMALL_H = HEIGHT * SCALE;
+
+const offCanvas = document.createElement("canvas");
+offCanvas.width = SMALL_W;
+offCanvas.height = SMALL_H;
+const offCtx = offCanvas.getContext("2d");
 
 async function generateArchetype() {
 
@@ -71,51 +81,67 @@ async function generateArchetype() {
     imagePool.map(src => loadImage(src))
   );
 
-  ctx.clearRect(0,0,WIDTH,HEIGHT);
-
-  buildFragmentMosaic(loaded);
+  buildMajorityImage(loaded);
 }
 
-function buildFragmentMosaic(images) {
+function buildMajorityImage(images) {
 
-  const gridSize = 20 + Math.random() * 60; // 블록 크기
-  const cols = Math.ceil(WIDTH / gridSize);
-  const rows = Math.ceil(HEIGHT / gridSize);
+  const imageDataArray = [];
 
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
+  images.forEach(img => {
+    offCtx.clearRect(0,0,SMALL_W,SMALL_H);
+    offCtx.drawImage(img, 0, 0, SMALL_W, SMALL_H);
+    imageDataArray.push(
+      offCtx.getImageData(0,0,SMALL_W,SMALL_H).data
+    );
+  });
 
-      const img = weightedPick(images);
+  const finalImage = offCtx.createImageData(SMALL_W, SMALL_H);
+  const totalPixels = SMALL_W * SMALL_H;
 
-      const sx = Math.random() * img.width;
-      const sy = Math.random() * img.height;
+  for (let i = 0; i < totalPixels; i++) {
 
-      ctx.drawImage(
-        img,
-        sx, sy,
-        gridSize, gridSize,
-        x * gridSize,
-        y * gridSize,
-        gridSize,
-        gridSize
-      );
+    const index = i * 4;
+
+    const colorVotes = {};
+
+    imageDataArray.forEach(data => {
+      const r = data[index];
+      const g = data[index+1];
+      const b = data[index+2];
+
+      // 색상 단순화 (정확히 일치해야 하므로 약간 양자화)
+      const key =
+        Math.round(r/32)*32 + "," +
+        Math.round(g/32)*32 + "," +
+        Math.round(b/32)*32;
+
+      colorVotes[key] = (colorVotes[key] || 0) + 1;
+    });
+
+    let winningColor = null;
+    let maxVotes = 0;
+
+    for (let color in colorVotes) {
+      if (colorVotes[color] > maxVotes) {
+        maxVotes = colorVotes[color];
+        winningColor = color;
+      }
     }
+
+    const [wr, wg, wb] = winningColor.split(",").map(Number);
+
+    finalImage.data[index] = wr;
+    finalImage.data[index+1] = wg;
+    finalImage.data[index+2] = wb;
+    finalImage.data[index+3] = 255;
   }
-}
 
-function weightedPick(images) {
+  offCtx.putImageData(finalImage, 0, 0);
 
-  const r = Math.random();
-
-  if (r < 0.6) {
-    return images[0]; // 1위 60%
-  } else if (r < 0.85 && images[1]) {
-    return images[1]; // 2위
-  } else if (r < 0.95 && images[2]) {
-    return images[2]; // 3위
-  } else {
-    return images[Math.floor(Math.random() * images.length)];
-  }
+  // 확대해서 메인 캔버스에 그리기
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(offCanvas, 0, 0, WIDTH, HEIGHT);
 }
 
 function loadImage(src) {
