@@ -1,47 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <style>
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(3, 150px);
-    grid-template-rows: repeat(3, 150px);
-    gap: 5px;
-    margin: 20px auto;
-    width: max-content; /* grid 폭만큼 중앙정렬 */
-  }
+<meta charset="UTF-8">
+<title>고향</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-family:serif;
+}
+
+h1{
+  margin-bottom:20px;
+  font-size:15px;
+}
+
+#progress{
+  margin-bottom:20px;
+  font-size:10px;
+}
+
+#grid{
+  display:grid;
+  grid-template-columns:repeat(3,250px);
+  grid-template-rows:repeat(3,250px);
+  gap:15px;
+}
+
+img{
+  width:250px;
+  height:250px;
+  object-fit:cover;
+  cursor:pointer;
+}
 </style>
-  <meta charset="UTF-8">
-  <title>당신의 고향을 선택하시오</title>
 </head>
 
 <body>
-  <h1>당신의 고향과 가장 가까운 이미지를 고르시오.</h1>
-  <div id="progress"></div>
-  <div id="grid"></div>
 
-  <script type="module" src="script.js"></script>
-  <div id="memoryOverlay" style="
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-">
-  <div id="memoryButton" style="
-    font-size: 60px;
-    color: white;
-    cursor: pointer;
-    letter-spacing: 8px;
-    transition: 0.3s;
-  ">
-    memory
-  </div>
-</div>
+<h1>당신의 고향과 가장 가까운 이미지를 고르시오.</h1>
+
+<div id="progress">0 / 5</div>   <!-- 🔥 이 줄 추가 -->
+
+<div id="grid"></div>
+
+<script type="module" src="script.js"></script>
+
 </body>
 </html>

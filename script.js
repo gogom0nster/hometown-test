@@ -1,122 +1,99 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-document.addEventListener("DOMContentLoaded", function () {
+const firebaseConfig = {
+  apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
+  authDomain: "hometown-data.firebaseapp.com",
+  projectId: "hometown-data",
+  storageBucket: "hometown-data.firebasestorage.app",
+  messagingSenderId: "427121820704",
+  appId: "1:427121820704:web:ae205795fbcac3e713e845"
+};
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
-    authDomain: "hometown-data.firebaseapp.com",
-    projectId: "hometown-data",
-    storageBucket: "hometown-data.firebasestorage.app",
-    messagingSenderId: "427121820704",
-    appId: "1:427121820704:web:ae205795fbcac3e713e845"
-  };
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const URBAN_COUNT = 26;
+const NATURAL_COUNT = 36;
+const MAX_SELECTION = 5;
 
-  const grid = document.getElementById("grid");
-  const progress = document.getElementById("progress");
-  const overlay = document.getElementById("memoryOverlay");
-  const memoryButton = document.getElementById("memoryButton");
+const grid = document.getElementById("grid");
+const progress = document.getElementById("progress");
 
-  // ✅ 72개 자동 생성
+let selections = [];
+
+/* ---------------- 랜덤 이미지 9개 생성 ---------------- */
+
+function getRandomImages() {
+
   const images = [];
-  for (let i = 1; i <= 72; i++) {
-    images.push(`./images/img${i}.png`);
+
+  for (let i = 1; i <= URBAN_COUNT; i++) {
+    images.push(`urban/img${i}.png`);
   }
 
-  let currentRound = 0;
-  const maxRounds = 5;
-  let selections = [];
-
-  function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
+  for (let i = 1; i <= NATURAL_COUNT; i++) {
+    images.push(`natural/img${i}.png`);
   }
 
-  function updateProgress() {
-    progress.innerHTML = `<h3>${currentRound} / ${maxRounds}</h3>`;
-  }
+  images.sort(() => Math.random() - 0.5);
 
-  async function saveData() {
-    try {
-      await addDoc(collection(db, "results"), {
-        selections: selections,
-        timestamp: new Date()
-      });
+  return images.slice(0, 9);
+}
 
-      showMemoryScreen();
+/* ---------------- 그리드 렌더 ---------------- */
 
-    } catch (error) {
-      console.error("저장 실패:", error);
-    }
-  }
+function renderGrid() {
 
-  function showMemoryScreen() {
-    grid.innerHTML = "";
-    progress.innerHTML = "";
-    overlay.style.display = "flex";
-  }
+  grid.innerHTML = "";
 
-  memoryButton.addEventListener("mouseenter", () => {
-    memoryButton.style.transform = "scale(1.1)";
-    memoryButton.style.opacity = "0.7";
+  const imgs = getRandomImages();
+
+  imgs.forEach(src => {
+    const img = document.createElement("img");
+    img.src = src;
+
+    img.onclick = () => {
+      selections.push(src);
+      updateProgress();
+
+      if (selections.length >= MAX_SELECTION) {
+        saveResult();
+      } else {
+        renderGrid();
+      }
+    };
+
+    grid.appendChild(img);
   });
+}
 
-  memoryButton.addEventListener("mouseleave", () => {
-    memoryButton.style.transform = "scale(1)";
-    memoryButton.style.opacity = "1";
-  });
+/* ---------------- 진행 카운트 ---------------- */
 
-  memoryButton.addEventListener("click", () => {
-    window.location.href = "archetype.html";
-  });
+function updateProgress() {
+  progress.innerText = `${selections.length} / ${MAX_SELECTION}`;
+}
 
-  function createGrid() {
+/* ---------------- Firebase 저장 ---------------- */
 
-    if (currentRound >= maxRounds) return;
 
-    grid.innerHTML = "";
 
-    const shuffledImages = [...images];
-    shuffle(shuffledImages);
+async function saveResult() {
 
-    for (let i = 0; i < 9; i++) {
+  try {
+    const docRef = await addDoc(collection(db, "results"), {
+      selections: selections
+    });
 
-      const cell = document.createElement("div");
-      const imageUrl = shuffledImages[i];
+    console.log("저장 성공:", docRef.id);
 
-      cell.style.width = "150px";
-      cell.style.height = "150px";
-      cell.style.backgroundImage = `url(${imageUrl})`;
-      cell.style.backgroundSize = "cover";
-      cell.style.backgroundPosition = "center";
-      cell.style.cursor = "pointer";
-
-      cell.addEventListener("click", function () {
-
-        if (currentRound >= maxRounds) return;
-
-        selections.push(imageUrl);
-        currentRound++;
-        updateProgress();
-
-        if (currentRound >= maxRounds) {
-          saveData();
-        } else {
-          createGrid();
-        }
-
-      });
-
-      grid.appendChild(cell);
-    }
+  } catch (error) {
+    console.error("저장 오류:", error);
   }
 
-  updateProgress();
-  createGrid();
+  window.location.href = "archetype.html";
+}
+/* ---------------- 초기 실행 ---------------- */
 
-});
+updateProgress();
+renderGrid();
