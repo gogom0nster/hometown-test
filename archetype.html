@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>원형</title>
-
 <style>
 body{
   margin:0;
@@ -24,12 +23,24 @@ canvas{
   transform:translateX(-50%);
   font-size:14px;
 }
+#toDiary{
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  
+}
 </style>
 </head>
 <body>
-
 <canvas id="canvas" width="900" height="540"></canvas>
 <div id="stats"></div>
+<button id="toDiary">기억</button>
 
 <script type="module">
 
@@ -51,207 +62,13 @@ const db = getFirestore(app);
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const stats = document.getElementById("stats");
+const toDiaryBtn = document.getElementById("toDiary");
 
 let versions = [];
 let currentIndex = 0;
 let imageLoaded = false;
 
-/* ---------------- 데이터 생성 ---------------- */
-
-async function generate(){
-
-  const snapshot = await getDocs(collection(db,"results"));
-  if(snapshot.empty) return;
-
-  const imageCounts = {};
-
-  snapshot.forEach(doc=>{
-    doc.data().selections.forEach(img=>{
-      imageCounts[img] = (imageCounts[img] || 0) + 1;
-    });
-  });
-
-  const sorted = Object.entries(imageCounts)
-        .sort((a,b)=>b[1]-a[1]);
-
-  const groups = [
-    sorted.slice(0,5),
-    sorted.slice(5,10),
-    sorted.slice(10,30),
-    sorted.slice(30)
-  ];
-
-  const opacities=[0.9,0.6,0.35,0.2];
-
-  for(let v=0; v<5; v++){
-
-    let versionImages=[];
-    let urbanCount=0;
-    let naturalCount=0;
-
-    for(let g=0; g<groups.length; g++){
-
-      const available = groups[g];
-      if(available.length===0) continue;
-
-      const randomItem =
-        available[Math.floor(Math.random()*available.length)];
-
-      const src = randomItem[0];
-
-      if(src.includes("urban/")) urbanCount++;
-      if(src.includes("natural/")) naturalCount++;
-
-      versionImages.push({
-        src: src,
-        opacity: opacities[g]
-      });
-    }
-
-    versions.push({
-      images: versionImages,
-      urban: urbanCount,
-      natural: naturalCount
-    });
-  }
-
-  await renderImages();
-  updateStats();
-  imageLoaded = true;
-  animate();
-}
-
-/* ---------------- 이미지 렌더 ---------------- */
-
-async function renderImages(){
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const baseWidth = 600;
-  const baseHeight = 360;
-  const centerX = canvas.width/2 - baseWidth/2;
-  const centerY = canvas.height/2 - baseHeight/2;
-
-  const version = versions[currentIndex];
-
-  for(const item of version.images){
-    const img = await loadImage(item.src);
-    ctx.globalAlpha = item.opacity;
-    ctx.drawImage(img, centerX, centerY, baseWidth, baseHeight);
-  }
-
-  ctx.globalAlpha = 1;
-}
-
-/* ---------------- 비율 텍스트 ---------------- */
-
-function updateStats(){
-
-  const version = versions[currentIndex];
-  const total = version.urban + version.natural;
-
-  if(total === 0) return;
-
-  const urbanPercent = ((version.urban/total)*100).toFixed(0);
-  const naturalPercent = ((version.natural/total)*100).toFixed(0);
-
-  stats.innerHTML =
-    `Urban ${urbanPercent}%  |  Natural ${naturalPercent}%`;
-}
-
-function drawBreathingLine() {
-  const version = versions[currentIndex];
-  const total = version.urban + version.natural;
-  if (total === 0) return;
-
-  const urbanRatio = version.urban / total;
-  const naturalRatio = version.natural / total;
-
-  const centerY = canvas.height - 80;
-  const centerX = canvas.width / 2;
-  const maxWidth = 400 + total * 20;
-
-  let time = Date.now() * 0.0002;
-
-  /* ---------------- URBAN : 겹치는 불규칙 직선 ---------------- */
-  let urbanLayers = 1 + Math.floor(urbanRatio * 3); // 1~4겹
-  ctx.lineWidth = 0.5; // 선 굵기 변경
-  ctx.strokeStyle = "rgba(0,0,0,0.8)";
-
-  for (let l = 0; l < urbanLayers; l++) {
-    ctx.beginPath();
-    for (let x = 0; x <= maxWidth; x += 2) {
-      let movingX = x + time * 150 + l * 15;
-
-      // 선형 + 사인 + 랜덤 혼합
-      let linear = ((Math.floor(movingX / 20) % 2) * 2 - 1) * (8 + urbanRatio * 10);
-      let sine = Math.sin(movingX * 0.05 + l) * (5 + urbanRatio * 10);
-      let noise = (Math.random() - 0.5) * (2 + urbanRatio * 5);
-      let yOffset = linear + sine + noise;
-
-      let y = centerY - yOffset;
-
-      if (x === 0) ctx.moveTo(centerX - x, y);
-      else ctx.lineTo(centerX - x, y);
-    }
-    ctx.stroke();
-  }
-
-/* ---------------- NATURAL : 부드러운 겹치는 곡선 ---------------- */
-let naturalLayers = 1 + Math.floor(naturalRatio * 4); // 1~5겹
-ctx.lineWidth = 0.5; // 선 굵기
-ctx.strokeStyle = "rgba(0,0,0,0.6)";
-
-// 파동 밀도와 진폭
-let minWavelength = 0.05;  // 촘촘할 때
-let maxWavelength = 0.002;   // 평평할 때
-
-// ✅ 수치 ↑ → 촘촘, 진폭 ↑
-let wavelength = maxWavelength - (maxWavelength - minWavelength) * naturalRatio;
-let amplitudeBase = 8 + naturalRatio * 16;
-
-for (let w = 0; w < naturalLayers; w++) {
-  ctx.beginPath();
-  for (let x = 0; x <= maxWidth; x++) {
-    let movingX = x + time * 100 + w * 20;
-    let amplitude = amplitudeBase;
-    let yOffset = Math.sin(movingX * wavelength) * amplitude;
-    let y = centerY + yOffset + w * 5; // 겹침 오프셋
-    if (x === 0) ctx.moveTo(centerX + x, y);
-    else ctx.lineTo(centerX + x, y);
-  }
-  ctx.stroke();
-}
-}
-
-function animate(){
-
-  if(!imageLoaded) return;
-
-  // 선 영역만 지움
-  ctx.clearRect(0, canvas.height-120, canvas.width, 120);
-
-  drawBreathingLine();
-
-  requestAnimationFrame(animate);
-}
-
-/* ---------------- 클릭 시 다음 버전 ---------------- */
-
-canvas.addEventListener("click", async ()=>{
-
-  currentIndex++;
-
-  if(currentIndex >= versions.length){
-    currentIndex = 0;
-  }
-
-  await renderImages();
-  updateStats();
-});
-
-/* ---------------- 이미지 로드 ---------------- */
-
+// ---------------- 이미지 로드 ----------------
 function loadImage(src){
   return new Promise(resolve=>{
     const img = new Image();
@@ -260,8 +77,174 @@ function loadImage(src){
   });
 }
 
-/* ---------------- 시작 ---------------- */
+// ---------------- 데이터 생성 ----------------
+async function generate(){
+  const snapshot = await getDocs(collection(db,"results"));
+  if(snapshot.empty) return;
 
+  const imageCounts = {};
+  snapshot.forEach(doc=>{
+    doc.data().selections.forEach(img=>{
+      imageCounts[img] = (imageCounts[img] || 0) + 1;
+    });
+  });
+
+  const sorted = Object.entries(imageCounts).sort((a,b)=>b[1]-a[1]);
+  const groups = [
+    sorted.slice(0,5),
+    sorted.slice(5,10),
+    sorted.slice(10,30),
+    sorted.slice(30)
+  ];
+  const opacities = [0.9,0.6,0.35,0.2];
+
+  let usedImages = new Set();
+
+  for(let v=0; v<5; v++){
+    let versionImages=[];
+    let urbanCount=0;
+    let naturalCount=0;
+
+    for(let g=0; g<groups.length; g++){
+      const available = groups[g].filter(item=>!usedImages.has(item[0]));
+      if(available.length===0) continue;
+      const randomItem = available[Math.floor(Math.random()*available.length)];
+      const src = randomItem[0];
+      if(src.includes("urban/")) urbanCount++;
+      if(src.includes("natural/")) naturalCount++;
+      versionImages.push({src, opacity: opacities[g]});
+      usedImages.add(src);
+    }
+    versions.push({images:versionImages, urban:urbanCount, natural:naturalCount});
+  }
+
+  imageLoaded = true;
+  await preloadVersionImages(versions[currentIndex]);
+  startImageStackAnimation();
+  animate(); // 선 애니메이션
+  updateStats();
+}
+
+// ---------------- 이미지 미리 로드 ----------------
+let preloadedImages = [];
+async function preloadVersionImages(version){
+  preloadedImages = [];
+  for(const item of version.images){
+    const img = await loadImage(item.src);
+    preloadedImages.push({img, opacity: item.opacity});
+  }
+}
+
+// ---------------- 이미지 점진적 겹침 ----------------
+let currentStackIndex = 0;
+function startImageStackAnimation(){
+  currentStackIndex = 0;
+  drawNextLayer();
+}
+
+function drawNextLayer(){
+  if(currentStackIndex >= preloadedImages.length) return;
+
+  const baseWidth = 600;
+  const baseHeight = 360;
+  const centerX = canvas.width/2 - baseWidth/2;
+  const centerY = canvas.height/2 - baseHeight/2;
+
+  const item = preloadedImages[currentStackIndex];
+  ctx.globalAlpha = item.opacity;
+  ctx.drawImage(item.img, centerX, centerY, baseWidth, baseHeight);
+  ctx.globalAlpha = 1;
+
+  currentStackIndex++;
+  setTimeout(drawNextLayer, 400);
+}
+
+// ---------------- 비율 텍스트 ----------------
+function updateStats(){
+  const version = versions[currentIndex];
+  const total = version.urban+version.natural;
+  if(total===0) return;
+  const urbanPercent = ((version.urban/total)*100).toFixed(0);
+  const naturalPercent = ((version.natural/total)*100).toFixed(0);
+  stats.innerHTML = `Urban ${urbanPercent}%  |  Natural ${naturalPercent}%`;
+}
+
+// ---------------- 선 애니메이션 ----------------
+function drawBreathingLine(){
+  if(!imageLoaded) return;
+  const version = versions[currentIndex];
+  const total = version.urban+version.natural;
+  if(total===0) return;
+  const urbanRatio = version.urban / total;
+  const naturalRatio = version.natural / total;
+  const centerY = canvas.height-80;
+  const centerX = canvas.width/2;
+  const maxWidth = 400 + total*20;
+  let time = Date.now()*0.0002;
+
+  // URBAN
+  let urbanLayers = 1 + Math.floor(urbanRatio*3);
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = "rgba(0,0,0,0.8)";
+  for(let l=0;l<urbanLayers;l++){
+    ctx.beginPath();
+    for(let x=0;x<=maxWidth;x+=2){
+      let movingX = x + time*150 + l*15;
+      let linear = ((Math.floor(movingX/20)%2)*2-1)*(8+urbanRatio*10);
+      let sine = Math.sin(movingX*0.05+l)*(5+urbanRatio*10);
+      let noise = (Math.random()-0.5)*(2+urbanRatio*5);
+      let yOffset = linear+sine+noise;
+      let y = centerY - yOffset;
+      if(x===0) ctx.moveTo(centerX-x,y);
+      else ctx.lineTo(centerX-x,y);
+    }
+    ctx.stroke();
+  }
+
+  // NATURAL
+  let naturalLayers = 1 + Math.floor(naturalRatio * 4);
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  let minWavelength = 0.05;
+  let maxWavelength = 0.002;
+  let wavelength = maxWavelength - (maxWavelength - minWavelength) * naturalRatio;
+  let amplitudeBase = 8 + naturalRatio * 16;
+  for (let w = 0; w < naturalLayers; w++) {
+    ctx.beginPath();
+    for (let x = 0; x <= maxWidth; x++) {
+      let movingX = x + time * 100 + w * 20;
+      let amplitude = amplitudeBase;
+      let yOffset = Math.sin(movingX * wavelength) * amplitude;
+      let y = centerY + yOffset + w * 5;
+      if (x === 0) ctx.moveTo(centerX + x, y);
+      else ctx.lineTo(centerX + x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+// ---------------- 선 애니메이션 루프 ----------------
+function animate(){
+  ctx.clearRect(0, canvas.height-120, canvas.width, 120);
+  drawBreathingLine();
+  requestAnimationFrame(animate);
+}
+
+// ---------------- 클릭 시 다음 버전 ----------------
+canvas.addEventListener("click", async ()=>{
+  currentIndex++;
+  if(currentIndex>=versions.length) currentIndex=0;
+  await preloadVersionImages(versions[currentIndex]);
+  startImageStackAnimation();
+  updateStats();
+});
+
+// ---------------- 버튼 클릭 시 일기 페이지 이동 ----------------
+toDiaryBtn.addEventListener("click", ()=>{
+  window.location.href = "diary.html"; // 일기 페이지 주소
+});
+
+// ---------------- 시작 ----------------
 generate();
 
 </script>
