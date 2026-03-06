@@ -2,26 +2,30 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>고향</title>
+
 <style>
+
 body {
   margin: 0;
   padding: 0;
   font-family: monospace;
   background: #fff;
-  height: 100vh;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
+
+  min-height: 100vh;
 }
 
 /* 왼쪽 상단 메뉴 */
 #menu {
   position: fixed;
-  top: 20px;
-  left: 20px;
-  font-size: 16px;
+  top: 18px;
+  left: 18px;
+  font-size: 14px;
 }
 
 #menu span {
@@ -36,17 +40,27 @@ body {
 
 /* 내용 영역 */
 #content {
-  margin-top: 80px;
-  width: 80%;
+  margin-top: 70px;
+
+  width: 92%;
   max-width: 700px;
+
   min-height: 300px;
+
   border: 1px solid #ccc;
-  padding: 20px;
-  line-height: 1.5;
+
+  padding: 22px;
+
+  line-height: 1.65;
+
   white-space: pre-wrap;
+
+  box-sizing: border-box;
 }
+
 </style>
 </head>
+
 <body>
 
 <!-- 메뉴 -->
@@ -62,6 +76,7 @@ body {
 </div>
 
 <script>
+
 // 단계별 일기 내용
 const diaryContents = {
   1: ` 아버지는 마당의 살구나무를 팔면서 무슨 생각을 했을까? 저축을 해 은행 이자를 다달이 받을까, 단타 기법 주식 뉴스를 보면서 투자를 할까, 딸의 대학 등록금, 손녀의 기저귀 값, 농기구를 살 자금··. 나무는 흰 꽃이 참 예뻤고, 열매도 달콤했다. 8.5톤 카고 트럭에 뿌리째 누워있는 살구나무는 어쩐지 생기를 잃은 것 같다. 나는 비가 오는 날, 아무도 없는 집에서 학교에 간 언니들과 과수원에 간 부모님을 기다리며 나무 앞에 가만히 서 있었다. 우리는 비를 맞으며 오래 이야기 했다. 분명 무슨 말을 했는데, 그러나 지금 떠오르는 것은                  뿐이다.
@@ -103,6 +118,7 @@ menuSpans.forEach(span => {
 
 // 페이지 로드 시 1단계 자동 표시
 contentDiv.textContent = diaryContents[1];
+
 </script>
 
 </body>
