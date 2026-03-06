@@ -2,8 +2,11 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>원형</title>
+
 <style>
+
 body{
   margin:0;
   background:#fff;
@@ -13,32 +16,38 @@ body{
   height:100vh;
   font-family:monospace;
 }
+
 canvas{
   cursor:pointer;
+  width:90vw;
+  max-width:900px;
+  height:auto;
 }
+
 #stats{
   position:fixed;
-  bottom:30px;
+  bottom:20px;
   left:50%;
   transform:translateX(-50%);
-  font-size:14px;
+  font-size:12px;
 }
+
 #toDiary{
   position: fixed;
   top: 20px;
   right: 20px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   background: none;
   border: none;
-  padding: 0;
-  margin: 0;
-  
 }
+
 </style>
 </head>
+
 <body>
-<canvas id="canvas" width="900" height="540"></canvas>
+
+<canvas id="canvas"></canvas>
 <div id="stats"></div>
 <button id="toDiary">기억</button>
 
@@ -68,7 +77,21 @@ let versions = [];
 let currentIndex = 0;
 let imageLoaded = false;
 
-// ---------------- 이미지 로드 ----------------
+function resizeCanvas(){
+
+  const ratio = 900/540;
+  const width = Math.min(window.innerWidth*0.9,900);
+  const height = width/ratio;
+
+  canvas.width = width;
+  canvas.height = height;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+
+// 이미지 로드
 function loadImage(src){
   return new Promise(resolve=>{
     const img = new Image();
@@ -77,12 +100,15 @@ function loadImage(src){
   });
 }
 
-// ---------------- 데이터 생성 ----------------
+
+// 데이터 생성
 async function generate(){
+
   const snapshot = await getDocs(collection(db,"results"));
   if(snapshot.empty) return;
 
   const imageCounts = {};
+
   snapshot.forEach(doc=>{
     doc.data().selections.forEach(img=>{
       imageCounts[img] = (imageCounts[img] || 0) + 1;
@@ -90,163 +116,275 @@ async function generate(){
   });
 
   const sorted = Object.entries(imageCounts).sort((a,b)=>b[1]-a[1]);
+
   const groups = [
     sorted.slice(0,5),
     sorted.slice(5,10),
     sorted.slice(10,30),
     sorted.slice(30)
   ];
+
   const opacities = [0.9,0.6,0.35,0.2];
 
   let usedImages = new Set();
 
   for(let v=0; v<5; v++){
+
     let versionImages=[];
     let urbanCount=0;
     let naturalCount=0;
 
     for(let g=0; g<groups.length; g++){
+
       const available = groups[g].filter(item=>!usedImages.has(item[0]));
       if(available.length===0) continue;
+
       const randomItem = available[Math.floor(Math.random()*available.length)];
       const src = randomItem[0];
+
       if(src.includes("urban/")) urbanCount++;
       if(src.includes("natural/")) naturalCount++;
-      versionImages.push({src, opacity: opacities[g]});
+
+      versionImages.push({
+        src,
+        opacity: opacities[g]
+      });
+
       usedImages.add(src);
     }
-    versions.push({images:versionImages, urban:urbanCount, natural:naturalCount});
+
+    versions.push({
+      images:versionImages,
+      urban:urbanCount,
+      natural:naturalCount
+    });
+
   }
 
   imageLoaded = true;
+
   await preloadVersionImages(versions[currentIndex]);
+
   startImageStackAnimation();
-  animate(); // 선 애니메이션
+  animate();
   updateStats();
 }
 
-// ---------------- 이미지 미리 로드 ----------------
+
+// 이미지 미리 로드
 let preloadedImages = [];
+
 async function preloadVersionImages(version){
+
   preloadedImages = [];
+
   for(const item of version.images){
+
     const img = await loadImage(item.src);
-    preloadedImages.push({img, opacity: item.opacity});
+
+    preloadedImages.push({
+      img,
+      opacity:item.opacity
+    });
+
   }
+
 }
 
-// ---------------- 이미지 점진적 겹침 ----------------
+
+// 이미지 점진적 겹침
 let currentStackIndex = 0;
+
 function startImageStackAnimation(){
+
   currentStackIndex = 0;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
   drawNextLayer();
+
 }
 
 function drawNextLayer(){
+
   if(currentStackIndex >= preloadedImages.length) return;
 
-  const baseWidth = 600;
-  const baseHeight = 360;
+  const baseWidth = canvas.width * 0.66;
+  const baseHeight = canvas.height * 0.66;
+
   const centerX = canvas.width/2 - baseWidth/2;
   const centerY = canvas.height/2 - baseHeight/2;
 
   const item = preloadedImages[currentStackIndex];
+
   ctx.globalAlpha = item.opacity;
-  ctx.drawImage(item.img, centerX, centerY, baseWidth, baseHeight);
+
+  ctx.drawImage(
+    item.img,
+    centerX,
+    centerY,
+    baseWidth,
+    baseHeight
+  );
+
   ctx.globalAlpha = 1;
 
   currentStackIndex++;
-  setTimeout(drawNextLayer, 400);
+
+  setTimeout(drawNextLayer,400);
+
 }
 
-// ---------------- 비율 텍스트 ----------------
+
+// 통계
 function updateStats(){
+
   const version = versions[currentIndex];
+
   const total = version.urban+version.natural;
+
   if(total===0) return;
+
   const urbanPercent = ((version.urban/total)*100).toFixed(0);
   const naturalPercent = ((version.natural/total)*100).toFixed(0);
-  stats.innerHTML = `Urban ${urbanPercent}%  |  Natural ${naturalPercent}%`;
+
+  stats.innerHTML = `Urban ${urbanPercent}% | Natural ${naturalPercent}%`;
+
 }
 
-// ---------------- 선 애니메이션 ----------------
+
+// 선 애니메이션
 function drawBreathingLine(){
+
   if(!imageLoaded) return;
+
   const version = versions[currentIndex];
+
   const total = version.urban+version.natural;
+
   if(total===0) return;
+
   const urbanRatio = version.urban / total;
   const naturalRatio = version.natural / total;
+
   const centerY = canvas.height-80;
   const centerX = canvas.width/2;
-  const maxWidth = 400 + total*20;
+
+  const maxWidth = canvas.width*0.45 + total*20;
+
   let time = Date.now()*0.0002;
+
 
   // URBAN
   let urbanLayers = 1 + Math.floor(urbanRatio*3);
+
   ctx.lineWidth = 0.5;
   ctx.strokeStyle = "rgba(0,0,0,0.8)";
+
   for(let l=0;l<urbanLayers;l++){
+
     ctx.beginPath();
+
     for(let x=0;x<=maxWidth;x+=2){
+
       let movingX = x + time*150 + l*15;
+
       let linear = ((Math.floor(movingX/20)%2)*2-1)*(8+urbanRatio*10);
       let sine = Math.sin(movingX*0.05+l)*(5+urbanRatio*10);
       let noise = (Math.random()-0.5)*(2+urbanRatio*5);
+
       let yOffset = linear+sine+noise;
+
       let y = centerY - yOffset;
+
       if(x===0) ctx.moveTo(centerX-x,y);
       else ctx.lineTo(centerX-x,y);
+
     }
+
     ctx.stroke();
+
   }
+
 
   // NATURAL
   let naturalLayers = 1 + Math.floor(naturalRatio * 4);
-  ctx.lineWidth = 0.5;
+
   ctx.strokeStyle = "rgba(0,0,0,0.6)";
+
   let minWavelength = 0.05;
   let maxWavelength = 0.002;
+
   let wavelength = maxWavelength - (maxWavelength - minWavelength) * naturalRatio;
+
   let amplitudeBase = 8 + naturalRatio * 16;
+
   for (let w = 0; w < naturalLayers; w++) {
+
     ctx.beginPath();
+
     for (let x = 0; x <= maxWidth; x++) {
+
       let movingX = x + time * 100 + w * 20;
+
       let amplitude = amplitudeBase;
+
       let yOffset = Math.sin(movingX * wavelength) * amplitude;
+
       let y = centerY + yOffset + w * 5;
+
       if (x === 0) ctx.moveTo(centerX + x, y);
       else ctx.lineTo(centerX + x, y);
+
     }
+
     ctx.stroke();
+
   }
+
 }
 
-// ---------------- 선 애니메이션 루프 ----------------
+
+// 애니메이션 루프
 function animate(){
+
   ctx.clearRect(0, canvas.height-120, canvas.width, 120);
+
   drawBreathingLine();
+
   requestAnimationFrame(animate);
+
 }
 
-// ---------------- 클릭 시 다음 버전 ----------------
+
+// 클릭
 canvas.addEventListener("click", async ()=>{
+
   currentIndex++;
+
   if(currentIndex>=versions.length) currentIndex=0;
+
   await preloadVersionImages(versions[currentIndex]);
+
   startImageStackAnimation();
+
   updateStats();
+
 });
 
-// ---------------- 버튼 클릭 시 일기 페이지 이동 ----------------
+
+// 일기 이동
 toDiaryBtn.addEventListener("click", ()=>{
-  window.location.href = "diary.html"; // 일기 페이지 주소
+
+  window.location.href = "diary.html";
+
 });
 
-// ---------------- 시작 ----------------
+
+// 시작
 generate();
 
 </script>
+
 </body>
 </html>
