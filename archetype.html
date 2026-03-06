@@ -48,6 +48,7 @@ canvas{
 </head>
 
 <body>
+<div id="people"></div>
 
 <canvas id="canvas" width="900" height="540"></canvas>
 <div id="stats"></div>
@@ -88,77 +89,82 @@ function loadImage(src){
     img.onload = ()=>resolve(img);
   });
 }
-
-
-// 데이터 생성
 async function generate(){
 
   const snapshot = await getDocs(collection(db,"results"));
+
+  const totalPeople = snapshot.size;
+
+  document.getElementById("people").innerText =
+  `${totalPeople} memories imagined a hometown`;
+
   if(snapshot.empty) return;
 
   const imageCounts = {};
 
+  let totalUrban = 0;
+  let totalNatural = 0;
+
   snapshot.forEach(doc=>{
     doc.data().selections.forEach(img=>{
+
       imageCounts[img] = (imageCounts[img] || 0) + 1;
+
+      if(img.includes("urban/")) totalUrban++;
+      if(img.includes("natural/")) totalNatural++;
+
     });
   });
 
   const sorted = Object.entries(imageCounts).sort((a,b)=>b[1]-a[1]);
 
-  const groups = [
-    sorted.slice(0,5),
-    sorted.slice(5,10),
-    sorted.slice(10,30),
-    sorted.slice(30)
+  // 참여자 수에 따른 선명도
+  const clarity = Math.min(1, totalPeople / 500);
+
+  const opacities = [
+    1.0,
+    0.85,
+    0.72,
+    0.6,
+    0.48,
+    0.38,
+    0.30,
+    0.22,
+    0.16,
+    0.10
   ];
 
-  const opacities = [0.9,0.6,0.35,0.2];
+  let versionImages=[];
 
-  let usedImages = new Set();
+  for(let i=0;i<10;i++){
 
-  for(let v=0; v<5; v++){
+    if(!sorted[i]) continue;
 
-    let versionImages=[];
-    let urbanCount=0;
-    let naturalCount=0;
-
-    for(let g=0; g<groups.length; g++){
-
-      const available = groups[g].filter(item=>!usedImages.has(item[0]));
-      if(available.length===0) continue;
-
-      const randomItem = available[Math.floor(Math.random()*available.length)];
-      const src = randomItem[0];
-
-      if(src.includes("urban/")) urbanCount++;
-      if(src.includes("natural/")) naturalCount++;
-
-      versionImages.push({
-        src,
-        opacity: opacities[g]
-      });
-
-      usedImages.add(src);
-    }
-
-    versions.push({
-      images:versionImages,
-      urban:urbanCount,
-      natural:naturalCount
+    versionImages.push({
+      src:sorted[i][0],
+      opacity: opacities[i] * (0.5 + clarity*0.5)
     });
 
   }
 
+  versions = [{
+    images:versionImages,
+    urban:totalUrban,
+    natural:totalNatural
+  }];
+
   imageLoaded = true;
 
-  await preloadVersionImages(versions[currentIndex]);
+  await preloadVersionImages(versions[0]);
 
   startImageStackAnimation();
+
   animate();
+
   updateStats();
 }
 
+// 데이터 생성
 
 // 이미지 미리 로드
 let preloadedImages = [];
