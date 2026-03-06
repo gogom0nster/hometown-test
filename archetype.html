@@ -26,20 +26,22 @@ canvas{
 
 #stats{
   position:fixed;
-  bottom:20px;
+  bottom:30px;
   left:50%;
   transform:translateX(-50%);
-  font-size:12px;
+  font-size:14px;
 }
 
 #toDiary{
   position: fixed;
   top: 20px;
   right: 20px;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   background: none;
   border: none;
+  padding: 0;
+  margin: 0;
 }
 
 </style>
@@ -47,7 +49,7 @@ canvas{
 
 <body>
 
-<canvas id="canvas"></canvas>
+<canvas id="canvas" width="900" height="540"></canvas>
 <div id="stats"></div>
 <button id="toDiary">기억</button>
 
@@ -76,19 +78,6 @@ const toDiaryBtn = document.getElementById("toDiary");
 let versions = [];
 let currentIndex = 0;
 let imageLoaded = false;
-
-function resizeCanvas(){
-
-  const ratio = 900/540;
-  const width = Math.min(window.innerWidth*0.9,900);
-  const height = width/ratio;
-
-  canvas.width = width;
-  canvas.height = height;
-}
-
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
 
 
 // 이미지 로드
@@ -209,8 +198,8 @@ function drawNextLayer(){
 
   if(currentStackIndex >= preloadedImages.length) return;
 
-  const baseWidth = canvas.width * 0.66;
-  const baseHeight = canvas.height * 0.66;
+  const baseWidth = 600;
+  const baseHeight = 360;
 
   const centerX = canvas.width/2 - baseWidth/2;
   const centerY = canvas.height/2 - baseHeight/2;
@@ -248,7 +237,7 @@ function updateStats(){
   const urbanPercent = ((version.urban/total)*100).toFixed(0);
   const naturalPercent = ((version.natural/total)*100).toFixed(0);
 
-  stats.innerHTML = `Urban ${urbanPercent}% | Natural ${naturalPercent}%`;
+  stats.innerHTML = `Urban ${urbanPercent}%  |  Natural ${naturalPercent}%`;
 
 }
 
@@ -270,7 +259,7 @@ function drawBreathingLine(){
   const centerY = canvas.height-80;
   const centerX = canvas.width/2;
 
-  const maxWidth = canvas.width*0.45 + total*20;
+  const maxWidth = 400 + total*20;
 
   let time = Date.now()*0.0002;
 
@@ -357,7 +346,7 @@ function animate(){
 }
 
 
-// 클릭
+// 클릭 시 다음 버전
 canvas.addEventListener("click", async ()=>{
 
   currentIndex++;
@@ -373,7 +362,7 @@ canvas.addEventListener("click", async ()=>{
 });
 
 
-// 일기 이동
+// 일기 페이지 이동
 toDiaryBtn.addEventListener("click", ()=>{
 
   window.location.href = "diary.html";
