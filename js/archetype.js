@@ -1,0 +1,326 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAcgpImd4xQQrXjsdeUtISiI0blO6qHNhQ",
+  authDomain: "hometown-data.firebaseapp.com",
+  projectId: "hometown-data",
+  storageBucket: "hometown-data.firebasestorage.app",
+  messagingSenderId: "427121820704",
+  appId: "1:427121820704:web:ae205795fbcac3e713e845"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const stats = document.getElementById("stats");
+const toDiaryBtn = document.getElementById("toDiary");
+
+let versions = [];
+let currentIndex = 0;
+let imageLoaded = false;
+
+
+// 이미지 로드
+function loadImage(src){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.src = src;
+    img.onload = ()=>resolve(img);
+  });
+}
+
+async function generate(){
+
+  const snapshot = await getDocs(collection(db,"results"));
+
+  const totalPeople = snapshot.size;
+
+  document.getElementById("people").innerText =
+  `${totalPeople} memories imagined a hometown`;
+
+  if(snapshot.empty) return;
+
+  const imageCounts = {};
+
+  let totalUrban = 0;
+  let totalNatural = 0;
+
+  snapshot.forEach(doc=>{
+    doc.data().selections.forEach(img=>{
+
+      imageCounts[img] = (imageCounts[img] || 0) + 1;
+
+      if(img.includes("urban/")) totalUrban++;
+      if(img.includes("natural/")) totalNatural++;
+
+    });
+  });
+
+  const sorted = Object.entries(imageCounts).sort((a,b)=>b[1]-a[1]);
+
+  // 참여자 수에 따른 선명도
+  const clarity = Math.min(1, totalPeople / 500);
+
+  const opacities = [
+    1.0,
+    0.85,
+    0.72,
+    0.6,
+    0.48,
+    0.38,
+    0.30,
+    0.22,
+    0.16,
+    0.10
+  ];
+
+  let versionImages=[];
+
+  for(let i=0;i<10;i++){
+
+    if(!sorted[i]) continue;
+
+    versionImages.push({
+      src:sorted[i][0],
+      opacity: opacities[i] * (0.5 + clarity*0.5)
+    });
+
+  }
+
+  versions = [{
+    images:versionImages,
+    urban:totalUrban,
+    natural:totalNatural
+  }];
+
+  imageLoaded = true;
+
+  await preloadVersionImages(versions[0]);
+
+  startImageStackAnimation();
+
+  animate();
+
+  updateStats();
+}
+
+// 데이터 생성
+
+// 이미지 미리 로드
+let preloadedImages = [];
+
+async function preloadVersionImages(version){
+
+  preloadedImages = [];
+
+  for(const item of version.images){
+
+    const img = await loadImage(item.src);
+
+    preloadedImages.push({
+      img,
+      opacity:item.opacity
+    });
+
+  }
+
+}
+
+
+// 이미지 점진적 겹침
+let currentStackIndex = 0;
+
+function startImageStackAnimation(){
+
+  currentStackIndex = 0;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  drawNextLayer();
+
+}
+
+function drawNextLayer(){
+
+  if(currentStackIndex >= preloadedImages.length) return;
+
+  const baseWidth = canvas.width 
+  const baseHeight = canvas.height
+
+  const centerX = canvas.width/2 - baseWidth/2;
+  const centerY = canvas.height/2 - baseHeight/2;
+
+  const item = preloadedImages[currentStackIndex];
+
+  ctx.globalAlpha = item.opacity;
+
+  ctx.drawImage(
+    item.img,
+    centerX,
+    centerY,
+    baseWidth,
+    baseHeight
+  );
+
+  ctx.globalAlpha = 1;
+
+  currentStackIndex++;
+
+  setTimeout(drawNextLayer,400);
+
+}
+
+
+// 통계
+function updateStats(){
+
+  const version = versions[currentIndex];
+
+  const total = version.urban+version.natural;
+
+  if(total===0) return;
+
+  const urbanPercent = ((version.urban/total)*100).toFixed(0);
+  const naturalPercent = ((version.natural/total)*100).toFixed(0);
+
+  stats.innerHTML = `Urban ${urbanPercent}%  |  Natural ${naturalPercent}%`;
+
+}
+
+
+// 선 애니메이션
+function drawBreathingLine(){
+
+  if(!imageLoaded) return;
+
+  const version = versions[currentIndex];
+
+  const total = version.urban+version.natural;
+
+  if(total===0) return;
+
+  const urbanRatio = version.urban / total;
+  const naturalRatio = version.natural / total;
+
+ // 수정: 파동 전체를 더 크게 보이게 위치 이동
+const centerY = canvas.height-450;
+  const centerX = canvas.width/2;
+
+  const maxWidth = 600 + total*30;
+
+  let time = Date.now()*0.0002;
+
+
+  // URBAN
+  let urbanLayers = 1 + Math.floor(urbanRatio*3);
+
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = "rgba(0,0,0,0.8)";
+
+  for(let l=0;l<urbanLayers;l++){
+
+    ctx.beginPath();
+
+    for(let x=0;x<=maxWidth;x+=2){
+
+      let movingX = x + time*150 + l*15;
+
+      // 수정: 도시 파동 확대
+let linear = ((Math.floor(movingX/20)%2)*2-1)*(25+urbanRatio*30);
+let sine = Math.sin(movingX*0.05+l)*(20+urbanRatio*30);
+      let noise = (Math.random()-0.5)*(2+urbanRatio*5);
+
+      let yOffset = linear+sine+noise;
+
+      let y = centerY - yOffset;
+
+      if(x===0) ctx.moveTo(centerX-x,y);
+      else ctx.lineTo(centerX-x,y);
+
+    }
+
+    ctx.stroke();
+
+  }
+
+
+  // NATURAL
+  let naturalLayers = 1 + Math.floor(naturalRatio * 4);
+
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+
+  let minWavelength = 0.05;
+  let maxWavelength = 0.002;
+
+  let wavelength = maxWavelength - (maxWavelength - minWavelength) * naturalRatio;
+// 수정: 파동 높이 크게
+let amplitudeBase = 40 + naturalRatio * 60;
+
+  for (let w = 0; w < naturalLayers; w++) {
+
+    ctx.beginPath();
+
+    for (let x = 0; x <= maxWidth; x++) {
+
+      let movingX = x + time * 100 + w * 20;
+
+      let amplitude = amplitudeBase;
+
+      let yOffset = Math.sin(movingX * wavelength) * amplitude;
+
+      let y = centerY + yOffset + w * 5;
+
+      if (x === 0) ctx.moveTo(centerX + x, y);
+      else ctx.lineTo(centerX + x, y);
+
+    }
+
+    ctx.stroke();
+
+  }
+
+}
+
+
+// 애니메이션 루프
+function animate(){
+
+ // 수정: 애니메이션 영역 크게
+ctx.clearRect(0, canvas.height-900, canvas.width, 900);
+
+  drawBreathingLine();
+
+  requestAnimationFrame(animate);
+
+}
+
+
+// 클릭 시 다음 버전
+canvas.addEventListener("click", async ()=>{
+
+  currentIndex++;
+
+  if(currentIndex>=versions.length) currentIndex=0;
+
+  await preloadVersionImages(versions[currentIndex]);
+
+  startImageStackAnimation();
+
+  updateStats();
+
+});
+
+
+// 일기 페이지 이동
+toDiaryBtn.addEventListener("click", ()=>{
+
+  window.location.href = "diary.html";
+
+});
+
+
+// 시작
+generate();

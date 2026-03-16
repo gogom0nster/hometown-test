@@ -1,0 +1,16 @@
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  background:#fff;
+}
+
+#randomImage{
+  max-width:60%;
+  max-height:60%;
+  object-fit:contain;
+}
+

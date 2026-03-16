@@ -1,0 +1,76 @@
+body{
+  margin:0;
+  background:#fff;
+  font-family:monospace;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* 상단 텍스트 */
+#people{
+  margin-top:40px; /* 수정 */
+  margin-bottom:20px;
+  font-size:16px;
+  text-align:center;
+}
+
+/* 중앙 영역 */
+#centerArea{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  width:90vw;
+  max-width:800px; /* 수정: 화면 확장 */
+}
+
+/* canvas */
+canvas{
+  width:110%; /* 수정: 화면에 맞게 확대 */
+  height:auto;
+  cursor:pointer;
+}
+
+/* 통계 */
+#stats{
+  margin-top:20px;
+  font-size:14px;
+}
+
+/* 뒤로가기 */
+.back{
+  position:fixed;
+  top:25px;
+  left:25px;
+
+  border:none;
+  background:none;
+
+  font-size:22px;
+  cursor:pointer;
+
+  opacity:0.6;
+  transition:opacity 0.2s;
+}
+
+.back:hover{
+  opacity:1;
+}
+
+/* 기억 버튼 */
+#toDiary{
+
+  position:fixed; /* 수정 */
+
+  top:25px; /* 수정 */
+  right:25px; /* 수정 */
+
+  background:none;
+  border:none;
+
+  font-size:14px;
+  cursor:pointer;
+
+}
