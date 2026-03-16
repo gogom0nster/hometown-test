@@ -2,17 +2,19 @@ body{
   margin:0;
   background:#fff;
   font-family:monospace;
-
   display:flex;
-  flex-direction:column;
+  justify-content:center;
   align-items:center;
+  height:100vh;
 }
 
 /* 상단 텍스트 */
 #people{
-  margin-top:40px; /* 수정 */
-  margin-bottom:20px;
-  font-size:16px;
+  position:fixed;
+  top:30px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:clamp(12px,3vw,16px);
   text-align:center;
 }
 
@@ -21,21 +23,21 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
-
-  width:90vw;
-  max-width:800px; /* 수정: 화면 확장 */
 }
 
-/* canvas */
 canvas{
-  width:110%; /* 수정: 화면에 맞게 확대 */
-  height:auto;
   cursor:pointer;
+  width:90vw;
+  max-width:900px;
+  height:auto;
 }
 
 /* 통계 */
 #stats{
-  margin-top:20px;
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
   font-size:14px;
 }
 
@@ -52,7 +54,6 @@ canvas{
   cursor:pointer;
 
   opacity:0.6;
-  transition:opacity 0.2s;
 }
 
 .back:hover{
@@ -62,15 +63,15 @@ canvas{
 /* 기억 버튼 */
 #toDiary{
 
-  position:fixed; /* 수정 */
+  position:fixed;
+  top:20px;
+  right:20px;
 
-  top:25px; /* 수정 */
-  right:25px; /* 수정 */
+  font-size:13px;
 
   background:none;
   border:none;
 
-  font-size:14px;
   cursor:pointer;
 
 }

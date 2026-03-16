@@ -147,8 +147,8 @@ function drawNextLayer(){
 
   if(currentStackIndex >= preloadedImages.length) return;
 
-  const baseWidth = canvas.width 
-  const baseHeight = canvas.height
+const baseWidth = 600;
+const baseHeight = 360;
 
   const centerX = canvas.width/2 - baseWidth/2;
   const centerY = canvas.height/2 - baseHeight/2;
@@ -206,10 +206,10 @@ function drawBreathingLine(){
   const naturalRatio = version.natural / total;
 
  // 수정: 파동 전체를 더 크게 보이게 위치 이동
-const centerY = canvas.height-450;
+const centerY = canvas.height-80;
   const centerX = canvas.width/2;
 
-  const maxWidth = 600 + total*30;
+  const maxWidth = 400 + total*20;
 
   let time = Date.now()*0.0002;
 
@@ -228,9 +228,8 @@ const centerY = canvas.height-450;
 
       let movingX = x + time*150 + l*15;
 
-      // 수정: 도시 파동 확대
-let linear = ((Math.floor(movingX/20)%2)*2-1)*(25+urbanRatio*30);
-let sine = Math.sin(movingX*0.05+l)*(20+urbanRatio*30);
+      let linear = ((Math.floor(movingX/20)%2)*2-1)*(8+urbanRatio*10);
+      let sine = Math.sin(movingX*0.05+l)*(5+urbanRatio*10);
       let noise = (Math.random()-0.5)*(2+urbanRatio*5);
 
       let yOffset = linear+sine+noise;
@@ -256,8 +255,8 @@ let sine = Math.sin(movingX*0.05+l)*(20+urbanRatio*30);
   let maxWavelength = 0.002;
 
   let wavelength = maxWavelength - (maxWavelength - minWavelength) * naturalRatio;
-// 수정: 파동 높이 크게
-let amplitudeBase = 40 + naturalRatio * 60;
+
+  let amplitudeBase = 8 + naturalRatio * 16;
 
   for (let w = 0; w < naturalLayers; w++) {
 
@@ -288,8 +287,8 @@ let amplitudeBase = 40 + naturalRatio * 60;
 // 애니메이션 루프
 function animate(){
 
- // 수정: 애니메이션 영역 크게
-ctx.clearRect(0, canvas.height-900, canvas.width, 900);
+
+ctx.clearRect(0, canvas.height-120, canvas.width, 120);
 
   drawBreathingLine();
 
