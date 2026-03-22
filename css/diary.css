@@ -91,3 +91,11 @@ body{
   font-size:14px;
   cursor:pointer;
 }
+.diary-img-wrap {
+  text-align: center;
+}
+
+.diary-img-wrap img {
+  max-width: 100%;
+  height: auto;
+}
